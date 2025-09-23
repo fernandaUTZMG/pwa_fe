@@ -1,0 +1,67 @@
+/* Importa la imagen */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: url('./fondo1.jpg') no-repeat center center;
+  background-size: cover;
+  font-family: 'Arial', sans-serif;
+}
+
+/* Formulario */
+.login-form {
+  background: rgba(255, 255, 255, 0.85); /* fondo blanco semi-transparente */
+  padding: 40px 50px;
+  border-radius: 15px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  width: 350px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-form:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+}
+
+/* Título */
+.login-form h1 {
+  margin-bottom: 25px;
+  color: #333;
+  font-size: 2rem;
+}
+
+/* Inputs */
+.login-form input {
+  width: 100%;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border-radius: 50px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.login-form input:focus {
+  border-color: #ff7eb3;
+}
+
+/* Botón */
+.login-form button {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 50px;
+  border: none;
+  background: linear-gradient(45deg, #ff758c, #ff7eb3);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.login-form button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+  background: linear-gradient(45deg, #ff7eb3, #ff758c);
+}
