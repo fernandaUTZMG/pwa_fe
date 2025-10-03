@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // 👈 importar navigate
-import "./login.css"; // Mantén tu CSS actual
+import { useNavigate } from "react-router-dom"; 
+import "./login.css";
 
 export default function Login() {
   const [showRegister, setShowRegister] = useState(false);
@@ -15,16 +15,19 @@ export default function Login() {
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
 
-  const navigate = useNavigate(); // 👈 hook para redirigir
+  const navigate = useNavigate();
+
+  // 🔹 Variable de entorno para el backend
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const handleLogin = () => {
     axios
-      .post("http://localhost:5000/login", { email, password })
+      .post(`${API_URL}/login`, { email, password }) // <-- URL dinámica
       .then((res) => {
         alert(res.data.message);
         localStorage.setItem("userId", res.data.userId);
-        localStorage.setItem("token", res.data.token); // 👈 guardar token si lo usas
-        navigate("/products"); // 👈 redirige a productos
+        localStorage.setItem("token", res.data.token);
+        navigate("/products");
       })
       .catch((err) =>
         alert(err.response?.data?.error || "Error en login")
@@ -33,11 +36,7 @@ export default function Login() {
 
   const handleRegister = () => {
     axios
-      .post("http://localhost:5000/register", {
-        username,
-        email: regEmail,
-        password: regPassword,
-      })
+      .post(`${API_URL}/register`, { username, email: regEmail, password: regPassword }) // <-- URL dinámica
       .then((res) => {
         alert(res.data.message);
         setShowRegister(false);

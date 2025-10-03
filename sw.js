@@ -7,7 +7,7 @@ const APP_SHELL_FILES = [
   '/src/App.jsx',
   '/src/App.css',
   '/src/main.jsx',
-  '/src/pages/Products.jsx',
+  '/src/pages/Products.jsx', 
   '/src/pages/login.jsx',
   '/src/pages/Cart.jsx',
   '/public/base.jpg',

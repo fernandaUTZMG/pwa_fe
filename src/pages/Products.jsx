@@ -13,13 +13,15 @@ const initialProducts = [
 
 export default function Products() {
   const userId = localStorage.getItem("userId"); 
-  const [products, setProducts] = useState(initialProducts); // Mantengo las imágenes
+  const [products, setProducts] = useState(initialProducts);
   const [cartItems, setCartItems] = useState([]);
   const [showCart, setShowCart] = useState(false);
 
+  const API_URL = import.meta.env.VITE_API_URL; // <-- variable de entorno
+
   // Traer productos desde el backend
   useEffect(() => {
-    axios.get("http://localhost:5000/products")
+    axios.get(`${API_URL}/products`)
       .then(res => {
         if (res.data && res.data.length > 0) {
           setProducts(res.data); // Sobreescribe solo si hay productos en la BD
@@ -39,7 +41,7 @@ export default function Products() {
     }
 
     // Enviar al backend
-    axios.post("http://localhost:5000/cart/add", {
+    axios.post(`${API_URL}/cart/add`, {
       userId,
       productId: product._id || product.id,
       quantity: 1,
@@ -51,7 +53,7 @@ export default function Products() {
   };
 
   const handleCheckout = () => {
-    axios.post("http://localhost:5000/cart/checkout", { userId })
+    axios.post(`${API_URL}/cart/checkout`, { userId })
       .then(res => {
         alert(res.data.message);
         setCartItems([]); 
