@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; 
 import "./login.css";
+import { saveUser, getUser } from "../db";
 
 export default function Login() {
   const [showRegister, setShowRegister] = useState(false);
@@ -16,37 +17,55 @@ export default function Login() {
   const [regPassword, setRegPassword] = useState("");
 
   const navigate = useNavigate();
-
-  // 🔹 Variable de entorno para el backend
   const API_URL = import.meta.env.VITE_API_URL;
 
-  const handleLogin = () => {
-    axios
-      .post(`${API_URL}/login`, { email, password }) // <-- URL dinámica
-      .then((res) => {
+  const handleLogin = async () => {
+    if (navigator.onLine) {
+      try {
+        const res = await axios.post(`${API_URL}/login`, { email, password });
         alert(res.data.message);
         localStorage.setItem("userId", res.data.userId);
         localStorage.setItem("token", res.data.token);
+        await saveUser({ userId: res.data.userId, email, password });
         navigate("/products");
-      })
-      .catch((err) =>
-        alert(err.response?.data?.error || "Error en login")
-      );
+      } catch (err) {
+        alert(err.response?.data?.error || "Error en login");
+      }
+    } else {
+      try {
+        const user = await getUser(email);
+        if (user && user.password === password) {
+          alert("Inicio de sesión en modo offline");
+          localStorage.setItem("userId", user.userId);
+          navigate("/products");
+        } else {
+          alert("No puedes iniciar sesión sin internet porque tus datos no coinciden.");
+        }
+      } catch (err) {
+        console.error("Error login offline:", err);
+        alert("No puedes iniciar sesión sin internet.");
+      }
+    }
   };
 
-  const handleRegister = () => {
-    axios
-      .post(`${API_URL}/register`, { username, email: regEmail, password: regPassword }) // <-- URL dinámica
-      .then((res) => {
+  const handleRegister = async () => {
+    if (navigator.onLine) {
+      try {
+        const res = await axios.post(`${API_URL}/register`, { username, email: regEmail, password: regPassword });
         alert(res.data.message);
         setShowRegister(false);
-        setUsername("");
-        setRegEmail("");
-        setRegPassword("");
-      })
-      .catch((err) =>
-        alert(err.response?.data?.error || "Error en registro")
-      );
+        setUsername(""); setRegEmail(""); setRegPassword("");
+      } catch (err) {
+        alert(err.response?.data?.error || "Error en registro");
+      }
+    } else {
+      const pendingUsers = JSON.parse(localStorage.getItem("pendingUsers") || "[]");
+      pendingUsers.push({ username, email: regEmail, password: regPassword });
+      localStorage.setItem("pendingUsers", JSON.stringify(pendingUsers));
+      alert("Registro guardado localmente. Se sincronizará cuando tengas internet.");
+      setShowRegister(false);
+      setUsername(""); setRegEmail(""); setRegPassword("");
+    }
   };
 
   return (
@@ -55,69 +74,24 @@ export default function Login() {
         {!showRegister ? (
           <>
             <h1>Iniciar Sesión</h1>
-            <input
-              type="email"
-              placeholder="Correo"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <input type="email" placeholder="Correo" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} />
             <button onClick={handleLogin}>Ingresar</button>
-
             <p style={{ marginTop: "15px" }}>
               ¿No tienes cuenta?{" "}
-              <span
-                onClick={() => setShowRegister(true)}
-                style={{
-                  color: "#ff7eb3",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Regístrate
-              </span>
+              <span onClick={() => setShowRegister(true)} className="link-action">Regístrate</span>
             </p>
           </>
         ) : (
           <>
             <h1>Registro</h1>
-            <input
-              type="text"
-              placeholder="Nombre de usuario"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            <input
-              type="email"
-              placeholder="Correo"
-              value={regEmail}
-              onChange={(e) => setRegEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={regPassword}
-              onChange={(e) => setRegPassword(e.target.value)}
-            />
+            <input type="text" placeholder="Nombre de usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
+            <input type="email" placeholder="Correo" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} />
+            <input type="password" placeholder="Contraseña" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} />
             <button onClick={handleRegister}>Registrarse</button>
-
             <p style={{ marginTop: "15px" }}>
               ¿Ya tienes cuenta?{" "}
-              <span
-                onClick={() => setShowRegister(false)}
-                style={{
-                  color: "#ff7eb3",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                }}
-              >
-                Inicia sesión
-              </span>
+              <span onClick={() => setShowRegister(false)} className="link-action">Inicia sesión</span>
             </p>
           </>
         )}

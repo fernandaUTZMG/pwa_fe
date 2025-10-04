@@ -1,12 +1,16 @@
-/* Importa la imagen */
+/* Contenedor principal con fondo */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background: url('./fondo1.jpg') no-repeat center center;
-  background-size: cover;
+  min-height: 100vh;
   font-family: 'Arial', sans-serif;
+
+  /* Fondo */
+  background-image: url('/assets/fondo1.jpg'); /* ruta desde public */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Formulario */
@@ -64,4 +68,11 @@
   transform: scale(1.05);
   box-shadow: 0 8px 15px rgba(0,0,0,0.3);
   background: linear-gradient(45deg, #ff7eb3, #ff758c);
+}
+
+/* Span con estilo de enlace */
+.link-action {
+  color: #ff7eb3;
+  cursor: pointer;
+  font-weight: bold;
 }
