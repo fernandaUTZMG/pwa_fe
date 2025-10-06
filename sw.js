@@ -1,7 +1,6 @@
 const APP_SHELL_CACHE = "app_shell_v1.0";
 const DYNAMIC_CACHE = "dynamic_v1.0";
 
-// Archivos estáticos de tu app
 const APP_SHELL_FILES = [
   '/src/index.css',
   '/src/App.jsx',
@@ -17,46 +16,32 @@ const APP_SHELL_FILES = [
   '/public/rubor.jpg',
 ];
 
-// Install: cachear archivos estáticos
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(APP_SHELL_CACHE)
-      .then(cache => cache.addAll(APP_SHELL_FILES))
+    caches.open(APP_SHELL_CACHE).then(cache => cache.addAll(APP_SHELL_FILES))
   );
   self.skipWaiting();
 });
 
-// Activate: limpiar caches antiguos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => 
       Promise.all(
-        keys
-          .filter(key => key !== APP_SHELL_CACHE && key !== DYNAMIC_CACHE)
-          .map(key => caches.delete(key))
+        keys.filter(key => key !== APP_SHELL_CACHE && key !== DYNAMIC_CACHE)
+            .map(key => caches.delete(key))
       )
     )
   );
 });
 
-// Fetch: interceptar solo peticiones HTTP/HTTPS
+// Cache para GET requests
 self.addEventListener('fetch', event => {
-  const requestUrl = event.request.url;
-
-  if (
-    event.request.method === 'GET' &&
-    (requestUrl.startsWith('http://') || requestUrl.startsWith('https://'))
-  ) {
+  if (event.request.method === 'GET') {
     event.respondWith(
       caches.match(event.request).then(cachedResp => {
-        if (cachedResp) return cachedResp;
-
-        return fetch(event.request).then(fetchResp => {
-          // Guardar solo en GET y del mismo origen
-          if (requestUrl.includes(self.location.origin)) {
-            const responseClone = fetchResp.clone();
-            caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, responseClone));
-          }
+        return cachedResp || fetch(event.request).then(fetchResp => {
+          const responseClone = fetchResp.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(event.request, responseClone));
           return fetchResp;
         }).catch(() => caches.match(event.request));
       })
@@ -64,6 +49,54 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// Eventos de background sync y push
-self.addEventListener('sync', event => {});
-self.addEventListener('push', event => {});
+// -----------------------------
+// 🎯 BACKGROUND SYNC
+// -----------------------------
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-pedidos') {
+    event.waitUntil(sincronizarPedidos());
+  }
+});
+
+async function sincronizarPedidos() {
+  console.log('[SW] Sincronizando pedidos pendientes...');
+  const db = await openDB('miDB', 1);
+  const tx = db.transaction('pendientes', 'readwrite');
+  const store = tx.objectStore('pendientes');
+  const pedidos = await store.getAll();
+
+  for (let pedido of pedidos) {
+    try {
+      const response = await fetch(`${self.location.origin}/api/cart/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pedido), // <-- enviamos pedido completo
+      });
+
+      if (response.ok) {
+        console.log('Pedido sincronizado correctamente:', pedido);
+        store.delete(pedido.id);
+
+        // Enviar mensaje al cliente para vaciar carrito
+        self.clients.matchAll().then(clients => {
+          clients.forEach(client => client.postMessage({ type: 'CLEAR_CART' }));
+        });
+      } else {
+        console.error('Error al sincronizar pedido:', response.statusText);
+      }
+    } catch (err) {
+      console.error('Error intentando sincronizar:', err);
+    }
+  }
+
+  await tx.done;
+  db.close();
+}
+
+function openDB(name, version) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(name, version);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
