@@ -1,25 +1,36 @@
+// server.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import webpush from "web-push";
 
 import { User } from "./models/user.js";
 import { Product } from "./models/Product.js";
 import { Purchase } from "./models/Purchase.js";
-import { Cart } from "./models/Cart.js"; // Importar modelo de carrito
+import { Cart } from "./models/Cart.js";
+
+// -------------------- VAPID KEYS --------------------
+const publicVapidKey = "BAJsbBvLPvl-vgyjPtnENPdRrR4RMoNPd6vEuUt4nKMdek-lOirCFs3A4gG9BSEujvD58jfEz4oCy4aUfwWaIBM";
+const privateVapidKey = "kIThQQnhmekPdgek3WJOAILsG_PUNojMtnZ4i9UimV4";
+
+webpush.setVapidDetails(
+  "mailto:tuemail@dominio.com", // email válido
+  publicVapidKey,
+  privateVapidKey
+);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// -------------------- MongoDB --------------------
 mongoose.connect("mongodb://127.0.0.1:27017/celeste_dos")
   .then(() => console.log("✅ MongoDB conectado"))
   .catch(err => console.error("❌ Error Mongo:", err));
 
-
-// --------------------- AUTH ---------------------
-// Registro
+// -------------------- AUTH --------------------
 app.post("/register", async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -32,7 +43,6 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Login
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -49,8 +59,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-
-// --------------------- PRODUCTS ---------------------
+// -------------------- PRODUCTS --------------------
 app.get("/products", async (req, res) => {
   try {
     const products = await Product.find();
@@ -60,7 +69,7 @@ app.get("/products", async (req, res) => {
   }
 });
 
-// --------------------- PURCHASE ---------------------
+// -------------------- PURCHASE --------------------
 app.post("/purchase", async (req, res) => {
   try {
     const { userId, productId, quantity } = req.body;
@@ -72,8 +81,7 @@ app.post("/purchase", async (req, res) => {
   }
 });
 
-// --------------------- CART ---------------------
-// Agregar al carrito
+// -------------------- CART --------------------
 app.post("/cart/add", async (req, res) => {
   try {
     const { userId, productId, quantity } = req.body;
@@ -95,7 +103,6 @@ app.post("/cart/add", async (req, res) => {
   }
 });
 
-// Ver carrito
 app.get("/cart/:userId", async (req, res) => {
   try {
     const cart = await Cart.findOne({ userId: req.params.userId });
@@ -105,14 +112,12 @@ app.get("/cart/:userId", async (req, res) => {
   }
 });
 
-// Comprar todos los productos del carrito
 app.post("/cart/checkout", async (req, res) => {
   try {
     const { userId } = req.body;
     const cart = await Cart.findOne({ userId });
     if (!cart || cart.items.length === 0) return res.status(400).json({ error: "Carrito vacío" });
 
-    // Guardar cada producto como compra
     for (const item of cart.items) {
       const purchase = new Purchase({
         userId,
@@ -122,7 +127,6 @@ app.post("/cart/checkout", async (req, res) => {
       await purchase.save();
     }
 
-    // Vaciar carrito
     cart.items = [];
     await cart.save();
 
@@ -132,5 +136,65 @@ app.post("/cart/checkout", async (req, res) => {
   }
 });
 
+// -------------------- PUSH NOTIFICATIONS --------------------
+// Ruta real para producción
+app.post("/subscribe", async (req, res) => {
+  try {
+    const subscription = req.body;
+    console.log("Nueva suscripción:", subscription);
 
-app.listen(5000, () => console.log("🚀 Servidor backend en http://192.168.100.12:5000"));
+    const payload = JSON.stringify({
+      title: "¡Suscripción exitosa! 💄",
+      body: "Ahora recibirás novedades de la tienda",
+    });
+
+    await webpush.sendNotification(subscription, payload);
+
+    res.status(201).json({ message: "Suscripción guardada y push enviado ✅" });
+  } catch (err) {
+    console.error("Error en /subscribe:", err);
+    res.status(500).json({ error: "Error en suscripción" });
+  }
+});
+
+// Ruta simulada para localhost (sin HTTPS)
+app.post("/subscribe-local", async (req, res) => {
+  try {
+    const subscription = req.body;
+    console.log("📨 Suscripción recibida :", subscription);
+
+    console.log("🚀 Notificación  enviada:", {
+      title: "¡Suscripción exitosa! 💄",
+      body: "Ahora recibirás novedades de la tienda",
+    });
+
+    res.status(201).json({ message: "Suscripción guardada  ✅" });
+  } catch (err) {
+    console.error("❌ Error en /subscribe-local:", err);
+    res.status(500).json({ error: "Error en suscripción simulada" });
+  }
+});
+
+// Enviar notificación manual
+app.post("/send-notification", async (req, res) => {
+  try {
+    const { subscription } = req.body;
+
+    const payload = JSON.stringify({
+      title: "Nuevos productos de maquillaje a la venta! 💄",
+      body: "Descubre nuestras últimas novedades en maquillaje 💋",
+      image: "/public/paleta.jpg" // Imagen que quieres mostrar
+    });
+
+    await webpush.sendNotification(subscription, payload);
+
+    res.status(200).json({ message: "Push enviado ✅" });
+  } catch (err) {
+    console.error("Error al enviar push:", err);
+    res.status(500).json({ error: "Error al enviar push" });
+  }
+});
+
+
+// -------------------- INICIAR SERVIDOR --------------------
+app.listen(5000, () => console.log("🚀 Servidor backend en http://localhost:5000"));

@@ -100,3 +100,33 @@ function openDB(name, version) {
     request.onsuccess = () => resolve(request.result);
   });
 }
+
+// -----------------------------
+// 📢 NOTIFICACIONES PUSH
+// -----------------------------
+sself.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+
+  const title = data.title || 'Nuevos productos de maquillaje 💄';
+  const options = {
+    body: data.body || 'Descubre nuestras últimas novedades 💋',
+    icon: 'http://localhost:4173/labial.jpg',    // icono pequeño
+    badge: 'http://localhost:4173/rubor.jpg',    // badge
+    image: 'http://localhost:4173/paleta.jpg',   // imagen grande
+    vibrate: [200, 100, 200],
+    actions: [
+      { action: 'ver', title: 'Ver productos' },
+      { action: 'cerrar', title: 'Cerrar' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  if (event.action === 'ver') {
+    event.waitUntil(clients.openWindow('/products'));
+  }
+});
