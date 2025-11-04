@@ -18,6 +18,8 @@ export default function Login() {
 
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_URL;
+  console.log("API_URL:", API_URL);
+
 
   const handleLogin = async () => {
     if (navigator.onLine) {

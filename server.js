@@ -6,10 +6,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import webpush from "web-push";
 
-import { User } from "./models/user.js";
-import { Product } from "./models/Product.js";
-import { Purchase } from "./models/Purchase.js";
-import { Cart } from "./models/Cart.js";
+import { User } from './src/models/user.js';
+import { Product } from './src/models/Product.js';
+import { Purchase } from "./src/models/Purchase.js";
+import { Cart } from "./src/models/Cart.js";
 
 // -------------------- VAPID KEYS --------------------
 const publicVapidKey = "BAJsbBvLPvl-vgyjPtnENPdRrR4RMoNPd6vEuUt4nKMdek-lOirCFs3A4gG9BSEujvD58jfEz4oCy4aUfwWaIBM";

@@ -36,6 +36,14 @@ self.addEventListener('activate', event => {
 
 // Cache para GET requests
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+
+  // Si la petición es hacia tu API backend, NO la interceptes
+  if (url.origin === 'http://localhost:5000') {
+    return; // pasa directo al network
+  }
+
+  // Solo cachear GETs de tu app
   if (event.request.method === 'GET') {
     event.respondWith(
       caches.match(event.request).then(cachedResp => {
@@ -48,6 +56,7 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
 
 // -----------------------------
 // 🎯 BACKGROUND SYNC
@@ -104,15 +113,15 @@ function openDB(name, version) {
 // -----------------------------
 // 📢 NOTIFICACIONES PUSH
 // -----------------------------
-sself.addEventListener('push', (event) => {
+self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
 
   const title = data.title || 'Nuevos productos de maquillaje 💄';
   const options = {
     body: data.body || 'Descubre nuestras últimas novedades 💋',
-    icon: 'http://localhost:4173/labial.jpg',    // icono pequeño
-    badge: 'http://localhost:4173/rubor.jpg',    // badge
-    image: 'http://localhost:4173/paleta.jpg',   // imagen grande
+    icon: 'http://localhost:4173/labial.jpg',
+    badge: 'http://localhost:4173/rubor.jpg',
+    image: 'http://localhost:4173/paleta.jpg',
     vibrate: [200, 100, 200],
     actions: [
       { action: 'ver', title: 'Ver productos' },

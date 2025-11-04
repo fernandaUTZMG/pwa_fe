@@ -39,10 +39,8 @@ if ("serviceWorker" in navigator && "PushManager" in window) {
 
       console.log("📨 Suscripción creada:", suscripcion.toJSON());
 
-      const isLocal = window.location.hostname === "localhost";
-      const subscribeUrl = isLocal
-        ? "http://localhost:5000/subscribe-local" // ruta simulada
-        : "http://localhost:5000/subscribe";      // ruta real
+      // ✅ Usar siempre la ruta real
+      const subscribeUrl = "http://localhost:5000/subscribe";
 
       const respuesta = await fetch(subscribeUrl, {
         method: "POST",
@@ -55,18 +53,6 @@ if ("serviceWorker" in navigator && "PushManager" in window) {
       }
 
       console.log("✅ Suscripción enviada al backend correctamente.");
-
-      // Simulación de notificación inmediata en localhost
-      if (isLocal) {
-  setTimeout(() => {
-    new Notification("Nuevos productos de maquillaje a la venta! 💄", {
-      body: "Descubre nuestras últimas novedades en maquillaje 💋",
-      icon: "/public/labial.jpg",
-      image: "/public/paleta.jpg",
-    });
-  }, 2000);
-}
-
     } catch (error) {
       console.error("❌ Error al registrar el Service Worker o suscribirse:", error);
     }
