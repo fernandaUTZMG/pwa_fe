@@ -11,7 +11,7 @@ export default defineConfig({
         'favicon.ico',
         'robots.txt',
         'apple-touch-icon.png',
-        'fondo1.jpg' // <-- tu imagen de fondo
+        'fondo1.jpg'
       ],
       manifest: {
         name: "PWA Maquillaje",
@@ -36,7 +36,6 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            // Cache para HTML, CSS, JS, fuentes e imágenes
             urlPattern: ({ request }) =>
               request.destination === 'document' ||
               request.destination === 'script' ||
@@ -48,12 +47,11 @@ export default defineConfig({
               cacheName: 'makeup-static-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 días
+                maxAgeSeconds: 60 * 60 * 24 * 30
               }
             }
           },
           {
-            // Cache de la API de productos
             urlPattern: /\/products/,
             handler: 'NetworkFirst',
             options: {
@@ -61,12 +59,11 @@ export default defineConfig({
               networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 días
+                maxAgeSeconds: 60 * 60 * 24 * 7
               }
             }
           },
           {
-            // Cache de imágenes individuales (como tu fondo)
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
@@ -80,5 +77,11 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+
+  // 👇 ESTA PARTE ES NUEVA: permite Render
+  preview: {
+    allowedHosts: ["pwa-fe.onrender.com"],
+    port: 4173,
+  }
 })
