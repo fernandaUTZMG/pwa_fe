@@ -22,7 +22,19 @@ webpush.setVapidDetails(
 );
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "https://pwa-fe.onrender.com", // tu frontend
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+  credentials: true
+}));
+app.options("*", cors({
+  origin: "https://pwa-fe.onrender.com",
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // -------------------- MongoDB --------------------
@@ -236,4 +248,4 @@ app.post("/notify/user", async (req, res) => {
 
 
 // -------------------- INICIAR SERVIDOR --------------------
-app.listen(5000, () => console.log("🚀 Servidor backend en http://localhost:5000"));
+app.listen(PORT, () => console.log(`🚀 Servidor backend corriendo en puerto ${PORT}`));
