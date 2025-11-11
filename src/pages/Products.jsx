@@ -1,6 +1,6 @@
 // src/pages/Products.jsx
 import React, { useState, useEffect } from "react";
-import { FaShoppingCart, FaTrash } from "react-icons/fa";
+import { FaShoppingCart, FaTrash, FaBell, FaBellSlash } from "react-icons/fa";
 import axios from "axios";
 import "./Products.css";
 import { saveProducts, getProducts, saveCart, getCart } from "../db";
@@ -20,6 +20,7 @@ export default function Products() {
   const [products, setProducts] = useState(initialProducts);
   const [cartItems, setCartItems] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [permisoNotificaciones, setPermisoNotificaciones] = useState(Notification.permission);
 
   const API_URL = import.meta.env.VITE_API_URL;
 
@@ -66,6 +67,7 @@ export default function Products() {
             setCartItems([]); // vaciar carrito local si se envió correctamente
             await saveCart([], userId);
             setShowCart(false);
+            
           } catch (err) {
             console.error("Error sincronizando pedido pendiente:", err);
           }
@@ -89,6 +91,28 @@ export default function Products() {
       });
     }
   }, [userId]);
+
+  // 🔹 Pedir permiso para notificaciones con ícono visual
+  // 🔹 Pedir permiso para notificaciones con ícono visual
+const solicitarPermisoNotificaciones = () => {
+  if (!("Notification" in window)) {
+    alert("Tu navegador no soporta notificaciones.");
+    return;
+  }
+
+  Notification.requestPermission().then((permiso) => {
+    setPermisoNotificaciones(permiso);
+
+    if (permiso === "granted") {
+      new Notification("✅ Notificaciones habilitadas", {
+        body: "Recibirás alertas cuando haya productos nuevos.",
+      });
+    } else if (permiso === "denied") {
+      alert("🚫 Has bloqueado las notificaciones.");
+    }
+  });
+};
+
 
   // 🔹 Agregar producto al carrito
   const handleAddToCart = async (product) => {
@@ -114,6 +138,14 @@ export default function Products() {
         productId: product._id || product.id,
         quantity: 1,
       }).catch(err => console.error("Error al agregar al carrito:", err));
+    }
+
+    // 🔔 Mostrar notificación si está permitido
+    if (Notification.permission === "granted") {
+      new Notification("🛒 Producto agregado", {
+        body: `Has agregado ${product.name} al carrito.`,
+        icon: "/icon.png", // cambia por el ícono de tu PWA
+      });
     }
   };
 
@@ -169,6 +201,51 @@ export default function Products() {
   return (
     <div className="products-container">
       <h1>Productos de Maquillaje</h1>
+
+      {/* 🔘 Botón visual para activar o mostrar estado de notificaciones */}
+      {/* 🔔 Ícono para activar o mostrar estado de notificaciones */}
+<div style={{ textAlign: "center", marginBottom: "1rem" }}>
+  <div
+    onClick={solicitarPermisoNotificaciones}
+    style={{
+      cursor: "pointer",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      fontSize: "1.8rem",
+      color:
+        permisoNotificaciones === "granted"
+          ? "green"
+          : permisoNotificaciones === "denied"
+          ? "red"
+          : "gray",
+      transition: "color 0.3s ease",
+    }}
+    title={
+      permisoNotificaciones === "granted"
+        ? "Notificaciones activadas"
+        : permisoNotificaciones === "denied"
+        ? "Notificaciones bloqueadas"
+        : "Haz clic para permitir notificaciones"
+    }
+  >
+    {permisoNotificaciones === "granted" ? (
+      <>
+        <FaBell /> <span style={{ fontSize: "1rem" }}>Activadas</span>
+      </>
+    ) : permisoNotificaciones === "denied" ? (
+      <>
+        <FaBellSlash /> <span style={{ fontSize: "1rem" }}>Bloqueadas</span>
+      </>
+    ) : (
+      <>
+        <FaBellSlash /> <span style={{ fontSize: "1rem" }}>Permitir</span>
+      </>
+    )}
+  </div>
+</div>
+
 
       {/* Botón de prueba para IndexedDB */}
       <TestIndexedDB />

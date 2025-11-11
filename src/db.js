@@ -122,6 +122,11 @@ export async function saveCart(cartItems, userId = "default") {
 }
 
 export async function getCart(userId = "default") {
+  if (!userId) {
+    console.warn("⚠️ getCart llamado sin userId, usando 'default'");
+    userId = "default";
+  }
+
   try {
     const db = await openDB();
     const tx = db.transaction(STORE_CARTS, "readonly");

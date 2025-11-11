@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom"; 
 import "./login.css";
 import { saveUser, getUser } from "../db";
+import { subscribeUserToPush } from "../pushManager"; // ✅ NUEVO
 
 export default function Login() {
   const [showRegister, setShowRegister] = useState(false);
@@ -20,16 +21,25 @@ export default function Login() {
   const API_URL = import.meta.env.VITE_API_URL;
   console.log("API_URL:", API_URL);
 
-
   const handleLogin = async () => {
     if (navigator.onLine) {
       try {
         const res = await axios.post(`${API_URL}/login`, { email, password });
         alert(res.data.message);
+
         localStorage.setItem("userId", res.data.userId);
         localStorage.setItem("token", res.data.token);
+
         await saveUser({ userId: res.data.userId, email, password });
+
+        // ✅ Activar notificaciones push para este usuario
+        await subscribeUserToPush(res.data.userId);
+        console.log("🔹 Navegador soporta SW:", "serviceWorker" in navigator);
+console.log("🔹 Estado de permisos:", Notification.permission);
+
+
         navigate("/products");
+
       } catch (err) {
         alert(err.response?.data?.error || "Error en login");
       }

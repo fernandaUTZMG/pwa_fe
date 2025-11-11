@@ -16,7 +16,7 @@ const publicVapidKey = "BAJsbBvLPvl-vgyjPtnENPdRrR4RMoNPd6vEuUt4nKMdek-lOirCFs3A
 const privateVapidKey = "kIThQQnhmekPdgek3WJOAILsG_PUNojMtnZ4i9UimV4";
 
 webpush.setVapidDetails(
-  "mailto:tuemail@dominio.com", // email válido
+  "mailto:fer@example.com", // email válido
   publicVapidKey,
   privateVapidKey
 );
@@ -137,61 +137,100 @@ app.post("/cart/checkout", async (req, res) => {
 });
 
 // -------------------- PUSH NOTIFICATIONS --------------------
-// Ruta real para producción
+import { Subscription } from "./src/models/Subscription.js";
+
+// Ruta para recibir y guardar suscripción (frontend debe enviar { subscription, userId?, role? })
 app.post("/subscribe", async (req, res) => {
   try {
-    const subscription = req.body;
-    console.log("Nueva suscripción:", subscription);
+    const { subscription, userId, role } = req.body;
 
-    const payload = JSON.stringify({
-      title: "¡Suscripción exitosa! 💄",
-      body: "Ahora recibirás novedades de la tienda",
-    });
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: "Faltan datos: subscription" });
+    }
 
-    await webpush.sendNotification(subscription, payload);
+    // Guardar o actualizar por endpoint (evita duplicados)
+    const existing = await Subscription.findOne({ "subscription.endpoint": subscription.endpoint });
+    if (existing) {
+      existing.subscription = subscription;
+      if (userId) existing.userId = userId;
+      if (role) existing.role = role;
+      await existing.save();
+      console.log("🔁 Suscripción actualizada:", existing._id.toString());
+      return res.status(200).json({ message: "Suscripción actualizada ✅" });
+    }
 
-    res.status(201).json({ message: "Suscripción guardada y push enviado ✅" });
+    const sub = new Subscription({ subscription, userId: userId || null, role: role || null });
+    await sub.save();
+    console.log("📌 Suscripción guardada:", sub._id.toString());
+    return res.status(201).json({ message: "Suscripción guardada ✅" });
   } catch (err) {
-    console.error("Error en /subscribe:", err);
-    res.status(500).json({ error: "Error en suscripción" });
+    console.error("❌ Error en /subscribe:", err);
+    return res.status(500).json({ error: "Error al guardar suscripción" });
   }
 });
 
-// Ruta simulada para localhost (sin HTTPS)
-app.post("/subscribe-local", async (req, res) => {
+// Función que envía la notificación y elimina subs inválidas
+async function sendNotificationDoc(subDoc, payload) {
   try {
-    const subscription = req.body;
-    console.log("📨 Suscripción recibida :", subscription);
+    await webpush.sendNotification(subDoc.subscription, JSON.stringify(payload));
+    return { ok: true };
+  } catch (err) {
+    console.error("sendNotification error:", err && err.statusCode, err && err.body);
+    // 410 Gone o 404 Not Found -> eliminar suscripción obsoleta
+    if (err && (err.statusCode === 410 || err.statusCode === 404)) {
+      await Subscription.deleteOne({ _id: subDoc._id });
+      console.log("🧹 Suscripción removida (obsoleta):", subDoc._id.toString());
+      return { ok: false, removed: true };
+    }
+    return { ok: false, error: String(err) };
+  }
+}
 
-    console.log("🚀 Notificación  enviada:", {
-      title: "¡Suscripción exitosa! 💄",
-      body: "Ahora recibirás novedades de la tienda",
+// Endpoint: enviar a todos los usuarios con un role específico
+// Body: { role, title, body, url, customData? }
+app.post("/notify/role", async (req, res) => {
+  try {
+    const { role, title, body, url, customData } = req.body;
+    if (!role) return res.status(400).json({ error: "role required" });
+
+    const subs = await Subscription.find({ role });
+    const payloadFactory = (s) => ({
+      title: title || "Notificación",
+      body: body || "Tienes una notificación",
+      icon: "/icons/icon-192.png",
+      url: url || "/",
+      data: { role: s.role, userId: s.userId, ...(customData || {}) }
     });
 
-    res.status(201).json({ message: "Suscripción guardada  ✅" });
+    const results = await Promise.all(subs.map(s => sendNotificationDoc(s, payloadFactory(s))));
+    return res.json({ ok: true, sent: results.length, results });
   } catch (err) {
-    console.error("❌ Error en /subscribe-local:", err);
-    res.status(500).json({ error: "Error en suscripción simulada" });
+    console.error("❌ Error en /notify/role:", err);
+    return res.status(500).json({ error: "Error al notificar por role" });
   }
 });
 
-// Enviar notificación manual
-app.post("/send-notification", async (req, res) => {
+// Endpoint: enviar a un usuario específico (puede haber varias suscripciones para 1 userId)
+// Body: { userId, title, body, url, customData? }
+app.post("/notify/user", async (req, res) => {
   try {
-    const { subscription } = req.body;
+    const { userId, title, body, url, customData } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId required" });
 
-    const payload = JSON.stringify({
-      title: "Nuevos productos de maquillaje a la venta! 💄",
-      body: "Descubre nuestras últimas novedades en maquillaje 💋",
-      image: "/public/paleta.jpg" // Imagen que quieres mostrar
-    });
+    const subs = await Subscription.find({ userId });
+    const payload = {
+      title: title || "Notificación Personal",
+      body: body || "Tienes un mensaje nuevo",
+      icon: "/icons/labial.jpg",
+      url: url || "/",
+      data: { userId, ...(customData || {}) }
+    };
 
-    await webpush.sendNotification(subscription, payload);
-
-    res.status(200).json({ message: "Push enviado ✅" });
+    const results = await Promise.all(subs.map(s => sendNotificationDoc(s, payload)));
+    return res.json({ ok: true, sent: results.length, results });
   } catch (err) {
-    console.error("Error al enviar push:", err);
-    res.status(500).json({ error: "Error al enviar push" });
+    console.error("❌ Error en /notify/user:", err);
+    return res.status(500).json({ error: "Error al notificar por user" });
   }
 });
 

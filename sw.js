@@ -39,9 +39,10 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   // Si la petición es hacia tu API backend, NO la interceptes
-  if (url.origin === 'http://localhost:5000') {
-    return; // pasa directo al network
-  }
+  const frontend = self.location.origin;
+ if (url.origin === 'http://localhost:5000' || url.origin === frontend) {
+  return; // No interceptar estas rutas
+}
 
   // Solo cachear GETs de tu app
   if (event.request.method === 'GET') {
@@ -118,24 +119,15 @@ self.addEventListener('push', (event) => {
 
   const title = data.title || 'Nuevos productos de maquillaje 💄';
   const options = {
-    body: data.body || 'Descubre nuestras últimas novedades 💋',
-    icon: 'http://localhost:4173/labial.jpg',
-    badge: 'http://localhost:4173/rubor.jpg',
-    image: 'http://localhost:4173/paleta.jpg',
-    vibrate: [200, 100, 200],
-    actions: [
-      { action: 'ver', title: 'Ver productos' },
-      { action: 'cerrar', title: 'Cerrar' },
-    ],
-  };
+  body: data.body || 'Nueva notificación 💄',
+};
+
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  if (event.action === 'ver') {
-    event.waitUntil(clients.openWindow('/products'));
-  }
+  const url = event.notification.data.url || '/';
+  event.waitUntil(clients.openWindow(url));
 });
