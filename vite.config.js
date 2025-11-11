@@ -11,7 +11,8 @@ export default defineConfig({
         'favicon.ico',
         'robots.txt',
         'apple-touch-icon.png',
-        'fondo1.jpg'
+        'fondo1.jpg',
+          'manifest.json'
       ],
       manifest: {
         name: "PWA Maquillaje",
