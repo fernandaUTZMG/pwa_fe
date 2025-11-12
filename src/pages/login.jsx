@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom"; 
 import "./login.css";
 import { saveUser, getUser } from "../db";
-import { subscribeUserToPush } from "../pushManager"; // ✅ NUEVO
+import { subscribeUserToPush } from "../pushManager";
 
 export default function Login() {
   const [showRegister, setShowRegister] = useState(false);
@@ -11,6 +11,7 @@ export default function Login() {
   // Login
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Registro
   const [username, setUsername] = useState("");
@@ -22,33 +23,36 @@ export default function Login() {
   console.log("API_URL:", API_URL);
 
   const handleLogin = async () => {
+    if (loading) return; // evita ejecuciones dobles
+    setLoading(true);
+
     if (navigator.onLine) {
       try {
         const res = await axios.post(`${API_URL}/login`, { email, password });
-        alert(res.data.message);
 
+        // Guardar datos localmente
         localStorage.setItem("userId", res.data.userId);
         localStorage.setItem("token", res.data.token);
-
         await saveUser({ userId: res.data.userId, email, password });
 
-        // ✅ Activar notificaciones push para este usuario
+        // Notificaciones push
         await subscribeUserToPush(res.data.userId);
-        console.log("🔹 Navegador soporta SW:", "serviceWorker" in navigator);
-console.log("🔹 Estado de permisos:", Notification.permission);
 
-
+        // Mostrar alert y navegar
+        alert(res.data.message);
         navigate("/products");
 
       } catch (err) {
         alert(err.response?.data?.error || "Error en login");
+      } finally {
+        setLoading(false);
       }
     } else {
       try {
         const user = await getUser(email);
         if (user && user.password === password) {
-          alert("Inicio de sesión en modo offline");
           localStorage.setItem("userId", user.userId);
+          alert("Inicio de sesión en modo offline");
           navigate("/products");
         } else {
           alert("No puedes iniciar sesión sin internet porque tus datos no coinciden.");
@@ -56,6 +60,8 @@ console.log("🔹 Estado de permisos:", Notification.permission);
       } catch (err) {
         console.error("Error login offline:", err);
         alert("No puedes iniciar sesión sin internet.");
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -88,7 +94,9 @@ console.log("🔹 Estado de permisos:", Notification.permission);
             <h1>Iniciar Sesión</h1>
             <input type="email" placeholder="Correo" value={email} onChange={(e) => setEmail(e.target.value)} />
             <input type="password" placeholder="Contraseña" value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button onClick={handleLogin}>Ingresar</button>
+            <button onClick={handleLogin} disabled={loading}>
+              {loading ? "Cargando..." : "Ingresar"}
+            </button>
             <p style={{ marginTop: "15px" }}>
               ¿No tienes cuenta?{" "}
               <span onClick={() => setShowRegister(true)} className="link-action">Regístrate</span>
