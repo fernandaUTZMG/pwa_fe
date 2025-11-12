@@ -23,17 +23,14 @@ webpush.setVapidDetails(
 
 const app = express();
 app.use(cors({
-  origin: "https://pwa-fe.onrender.com", // tu frontend
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
-  credentials: true
-}));
-app.options("*", cors({
   origin: "https://pwa-fe.onrender.com",
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
   credentials: true
 }));
+
+// Para responder correctamente a todas las opciones preflight
+
 
 app.use(express.json());
 
@@ -248,4 +245,5 @@ app.post("/notify/user", async (req, res) => {
 
 
 // -------------------- INICIAR SERVIDOR --------------------
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Servidor backend corriendo en puerto ${PORT}`));
