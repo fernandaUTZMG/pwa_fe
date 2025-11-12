@@ -35,9 +35,10 @@ app.use(cors({
 app.use(express.json());
 
 // -------------------- MongoDB --------------------
-mongoose.connect("mongodb://127.0.0.1:27017/celeste_dos")
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado"))
   .catch(err => console.error("❌ Error Mongo:", err));
+
 
 // -------------------- AUTH --------------------
 app.post("/register", async (req, res) => {
