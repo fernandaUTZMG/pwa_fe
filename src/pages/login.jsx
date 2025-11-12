@@ -30,6 +30,8 @@ export default function Login() {
       try {
         const res = await axios.post(`${API_URL}/login`, { email, password });
 
+          console.log("🧩 LOGIN RESPONSE:", res.data);
+          
         // Guardar datos localmente
         localStorage.setItem("userId", res.data.userId);
         localStorage.setItem("token", res.data.token);
