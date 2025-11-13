@@ -31,7 +31,7 @@ export default function Login() {
         const res = await axios.post(`${API_URL}/login`, { email, password });
 
           console.log("🧩 LOGIN RESPONSE:", res.data);
-          
+
         // Guardar datos localmente
         localStorage.setItem("userId", res.data.userId);
         localStorage.setItem("token", res.data.token);
@@ -45,6 +45,8 @@ export default function Login() {
         navigate("/products");
 
       } catch (err) {
+       console.error("🔴 ERROR LOGIN AXIOS:", err);
+  console.error("📦 RESPONSE COMPLETA:", err.response);
         alert(err.response?.data?.error || "Error en login");
       } finally {
         setLoading(false);
