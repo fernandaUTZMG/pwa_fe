@@ -22,36 +22,42 @@ export default function Login() {
   const API_URL = import.meta.env.VITE_API_URL;
   console.log("API_URL:", API_URL);
 
+  // ------------------ LOGIN ------------------
   const handleLogin = async () => {
-    if (loading) return; // evita ejecuciones dobles
+    if (loading) return; 
     setLoading(true);
 
     if (navigator.onLine) {
       try {
-        const res = await axios.post(`${API_URL}/login`, { email, password });
+        const res = await axios.post(
+          `${API_URL}/login`,
+          { email, password },
+          { headers: { "Content-Type": "application/json" } } // evita problemas de CORS
+        );
 
-          console.log("🧩 LOGIN RESPONSE:", res.data);
+        console.log("🧩 LOGIN RESPONSE:", res.data);
 
         // Guardar datos localmente
         localStorage.setItem("userId", res.data.userId);
         localStorage.setItem("token", res.data.token);
         await saveUser({ userId: res.data.userId, email, password });
 
-        // Notificaciones push
+        // Suscripción a push notifications
         await subscribeUserToPush(res.data.userId);
 
-        // Mostrar alert y navegar
+        // Mensaje y navegación
         alert(res.data.message);
         navigate("/products");
 
       } catch (err) {
-       console.error("🔴 ERROR LOGIN AXIOS:", err);
-  console.error("📦 RESPONSE COMPLETA:", err.response);
+        console.error("🔴 ERROR LOGIN AXIOS:", err);
+        console.error("📦 RESPONSE COMPLETA:", err.response);
         alert(err.response?.data?.error || "Error en login");
       } finally {
         setLoading(false);
       }
     } else {
+      // Modo offline
       try {
         const user = await getUser(email);
         if (user && user.password === password) {
@@ -70,14 +76,20 @@ export default function Login() {
     }
   };
 
+  // ------------------ REGISTER ------------------
   const handleRegister = async () => {
     if (navigator.onLine) {
       try {
-        const res = await axios.post(`${API_URL}/register`, { username, email: regEmail, password: regPassword });
+        const res = await axios.post(
+          `${API_URL}/register`,
+          { username, email: regEmail, password: regPassword },
+          { headers: { "Content-Type": "application/json" } }
+        );
         alert(res.data.message);
         setShowRegister(false);
         setUsername(""); setRegEmail(""); setRegPassword("");
       } catch (err) {
+        console.error("🔴 ERROR REGISTER AXIOS:", err);
         alert(err.response?.data?.error || "Error en registro");
       }
     } else {

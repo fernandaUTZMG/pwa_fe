@@ -19,8 +19,11 @@ export async function subscribeUserToPush(userId) {
 
   console.log("📨 Suscripción lista:", subscription);
 
+  // Obtener API_URL desde .env
+  const API_URL = import.meta.env.VITE_API_URL;
+
   // Guardar suscripción en backend
-  await fetch("http://localhost:5000/subscribe", {
+  await fetch(`${API_URL}/subscribe`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId, subscription }),

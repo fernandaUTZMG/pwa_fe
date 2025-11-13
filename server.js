@@ -10,35 +10,50 @@ import { User } from './src/models/user.js';
 import { Product } from './src/models/Product.js';
 import { Purchase } from "./src/models/Purchase.js";
 import { Cart } from "./src/models/Cart.js";
+import { Subscription } from "./src/models/Subscription.js";
 
 // -------------------- VAPID KEYS --------------------
 const publicVapidKey = "BAJsbBvLPvl-vgyjPtnENPdRrR4RMoNPd6vEuUt4nKMdek-lOirCFs3A4gG9BSEujvD58jfEz4oCy4aUfwWaIBM";
 const privateVapidKey = "kIThQQnhmekPdgek3WJOAILsG_PUNojMtnZ4i9UimV4";
 
 webpush.setVapidDetails(
-  "mailto:fer@example.com", // email válido
+  "mailto:fer@example.com", 
   publicVapidKey,
   privateVapidKey
 );
 
 const app = express();
+
+// -------------------- CORS --------------------
+const allowedOrigins = [
+  "https://pwa-fe.onrender.com", // producción
+  "http://localhost:5173"        // local dev
+];
+
 app.use(cors({
-  origin: "https://pwa-fe.onrender.com",
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // Postman o curl
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS"));
+    }
+  },
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"],
   credentials: true
 }));
 
-// Para responder correctamente a todas las opciones preflight
+// Manejar preflight requests globalmente
+app.options("*", cors());
 
-
+// -------------------- JSON --------------------
 app.use(express.json());
 
-// -------------------- MongoDB --------------------
+// -------------------- MONGODB --------------------
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB conectado"))
   .catch(err => console.error("❌ Error Mongo:", err));
-
 
 // -------------------- AUTH --------------------
 app.post("/register", async (req, res) => {
@@ -147,9 +162,6 @@ app.post("/cart/checkout", async (req, res) => {
 });
 
 // -------------------- PUSH NOTIFICATIONS --------------------
-import { Subscription } from "./src/models/Subscription.js";
-
-// Ruta para recibir y guardar suscripción (frontend debe enviar { subscription, userId?, role? })
 app.post("/subscribe", async (req, res) => {
   try {
     const { subscription, userId, role } = req.body;
@@ -158,7 +170,6 @@ app.post("/subscribe", async (req, res) => {
       return res.status(400).json({ error: "Faltan datos: subscription" });
     }
 
-    // Guardar o actualizar por endpoint (evita duplicados)
     const existing = await Subscription.findOne({ "subscription.endpoint": subscription.endpoint });
     if (existing) {
       existing.subscription = subscription;
@@ -179,14 +190,12 @@ app.post("/subscribe", async (req, res) => {
   }
 });
 
-// Función que envía la notificación y elimina subs inválidas
 async function sendNotificationDoc(subDoc, payload) {
   try {
     await webpush.sendNotification(subDoc.subscription, JSON.stringify(payload));
     return { ok: true };
   } catch (err) {
     console.error("sendNotification error:", err && err.statusCode, err && err.body);
-    // 410 Gone o 404 Not Found -> eliminar suscripción obsoleta
     if (err && (err.statusCode === 410 || err.statusCode === 404)) {
       await Subscription.deleteOne({ _id: subDoc._id });
       console.log("🧹 Suscripción removida (obsoleta):", subDoc._id.toString());
@@ -196,8 +205,6 @@ async function sendNotificationDoc(subDoc, payload) {
   }
 }
 
-// Endpoint: enviar a todos los usuarios con un role específico
-// Body: { role, title, body, url, customData? }
 app.post("/notify/role", async (req, res) => {
   try {
     const { role, title, body, url, customData } = req.body;
@@ -220,8 +227,6 @@ app.post("/notify/role", async (req, res) => {
   }
 });
 
-// Endpoint: enviar a un usuario específico (puede haber varias suscripciones para 1 userId)
-// Body: { userId, title, body, url, customData? }
 app.post("/notify/user", async (req, res) => {
   try {
     const { userId, title, body, url, customData } = req.body;
@@ -243,7 +248,6 @@ app.post("/notify/user", async (req, res) => {
     return res.status(500).json({ error: "Error al notificar por user" });
   }
 });
-
 
 // -------------------- INICIAR SERVIDOR --------------------
 const PORT = process.env.PORT || 5000;
